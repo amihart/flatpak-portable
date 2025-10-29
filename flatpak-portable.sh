@@ -18,6 +18,9 @@ f2=flatpak-1.16.1/builddir/subprojects/bubblewrap/flatpak-bwrap
 f3=flatpak-1.16.1/builddir/subprojects/dbus-proxy/flatpak-dbus-proxy
 f4=flatpak-1.16.1/builddir/portal/flatpak-portal
 
+#Fetch the interpreter
+int=$(realpath $(lddtree flatpak-1.16.1/builddir/app/flatpak | grep '(interpreter' | sed -e 's/.*=>//' -e 's/)//' -e 's/ //'))
+
 #Grab all the dependencies
 mkdir -p .tmp/lib/ .tmp/run/
 files="$(lddtree $f1 $f2 $f3 $f4 | grep -v interpreter | sed 's/.*=>//' | xargs)"
@@ -101,8 +104,8 @@ int main(int argc, char *argv[]) {
 		gcc $f.c -o libexec/$f -static
 	fi
 	rm $f.c
-	echo patchelf --set-interpreter $prefix/lib/ld-linux-x86-64.so.2 run/$f
-	patchelf --set-interpreter $prefix/lib/ld-linux-x86-64.so.2 run/$f
+	echo patchelf --set-interpreter $prefix/lib/$(basename $int) run/$f
+	patchelf --set-interpreter $prefix/lib/$(basename $int) run/$f
 	iter=$((iter+1))
 done
 
@@ -118,5 +121,5 @@ min-free-space-size=500MB
 tar -cvf flatpak-portable.tar *
 mv flatpak-portable.tar ..
 cd ..
-rm -rf .tmp flatpak-1.16.1.tar.xz
+rm -rf .tmp flatpak-1.16.1 flatpak-1.16.1.tar.xz
 
