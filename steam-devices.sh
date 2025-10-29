@@ -5,8 +5,10 @@ then
         exit
 fi
 wget https://raw.githubusercontent.com/ValveSoftware/steam-devices/refs/heads/master/60-steam-input.rules \
-        -O /lib/udev/rules.d/60-steam-input.rules
+        -O /lib/udev/rules.d/60-steam-input.rules \
+        --no-check-certificate
 wget https://raw.githubusercontent.com/ValveSoftware/steam-devices/refs/heads/master/60-steam-vr.rules \
-        -O /lib/udev/rules.d/60-steam-vr.rules
+        -O /lib/udev/rules.d/60-steam-vr.rules \
+        --no-check-certificate
 udevadm control --reload-rules
 udevadm trigger
