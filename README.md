@@ -1,7 +1,7 @@
 # flatpak-portable
 A script to package flatpak in a more portable fashion.
 
-This script will compile flatpak 1.16.1. using the meson and ninja. Make sure you can compile flatpak on your system without errors first before running the script. If it crashes while trying to compile flatpak, you probably have dependency issues, which you should resolve that prior to running the script. The three lines below should work independently of this script.
+This script will compile flatpak 1.16.1. using the ```meson``` and ```ninja```. Make sure you can compile flatpak on your system without errors first before running the script. If it crashes while trying to compile flatpak, you probably have dependency issues, which you should resolve that prior to running the script. The three lines below should work independently of this script.
 
 ```
 cd flatpak-1.16.1
