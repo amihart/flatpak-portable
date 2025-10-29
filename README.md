@@ -9,7 +9,7 @@ meson setup --prefix=/ builddir
 ninja -C builddir
 ```
 
-If you can successfully build flatpak on your machine, then run the script. The script will compile flatpak and package it into a tarball called ```flatpak-portable.tar```.
+If you can successfully build flatpak on your machine (and you have ```lddtree``` installed), then run the script. The script will compile flatpak and package it into a tarball called ```flatpak-portable.tar```.
 
 We will distinguish between the client and host machine. The host compiles the portable version of Flatpak, and the client is the machine in which it will be deployed on.
 
