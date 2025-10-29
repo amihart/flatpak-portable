@@ -1,1 +1,122 @@
+#!/bin/bash
+set -xe
+
+#Pull down and compile flatpak-1.16.1
+prefix=/opt/flatpak-portable
+rm -rf flatpak-1.16.1 flatpak-1.16.1.tar.xz .tmp
+wget https://github.com/flatpak/flatpak/releases/download/1.16.1/flatpak-1.16.1.tar.xz
+tar -xvf flatpak-1.16.1.tar.xz
+cd flatpak-1.16.1
+meson setup --prefix=$prefix builddir
+ninja -C builddir
+#sudo ninja -C builddir install
+cd ..
+
+#List of executables to package
+f1=flatpak-1.16.1/builddir/app/flatpak
+f2=flatpak-1.16.1/builddir/subprojects/bubblewrap/flatpak-bwrap
+f3=flatpak-1.16.1/builddir/subprojects/dbus-proxy/flatpak-dbus-proxy
+f4=flatpak-1.16.1/builddir/portal/flatpak-portal
+
+#Grab all the dependencies
+mkdir -p .tmp/lib/ .tmp/run/
+files="$(lddtree $f1 $f2 $f3 $f4 | grep -v interpreter | sed 's/.*=>//' | xargs)"
+files="$files $(ldd flatpak-1.16.1/builddir/app/flatpak | grep ld-linux | sed 's/(.*//' | xargs)"
+cd .tmp/lib/
+iter=1
+while true
+do
+	f=$(echo $files | cut -d' ' -f $iter)
+	if [ "$f" == "" ]
+	then
+		break
+	fi
+	cp $(realpath $f) $(basename $f)
+	iter=$((iter+1))
+done
+files="$f1 $f2 $f3 $f4"
+cd ..
+cp ../$f1 run/
+cp ../$f2 run/
+cp ../$f3 run/
+cp ../$f4 run/
+
+#Create wrappers and patches
+iter=1
+while true
+do
+	echo $f
+	f=$(echo $files | cut -d' ' -f $iter)
+	if [ "$f" == "" ]
+	then
+		break
+	fi
+	f=$(basename $f)
+	echo '
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <libgen.h>  // for basename()
+
+int main(int argc, char *argv[]) {
+    // Determine target basename from argv[0]
+    char *self_copy = strdup(argv[0]);
+    if (!self_copy) return 1;
+    char *base = basename(self_copy);
+
+    // Construct target path: "'$prefix$'/run/" + basename
+    char target[4096];
+    if (snprintf(target, sizeof(target), "'$prefix'/run/%s", base) >= (int)sizeof(target)) {
+        free(self_copy);
+        return 1; // path too long
+    }
+    free(self_copy);
+
+    // Build new argv: [target, argv[1], ..., NULL]
+    char **new_argv = malloc((argc + 1) * sizeof(char *));
+    if (!new_argv) return 1;
+    new_argv[0] = target;
+    for (int i = 1; i < argc; ++i) {
+        new_argv[i] = argv[i];
+    }
+    new_argv[argc] = NULL;
+
+    // Set LD_LIBRARY_PATH
+    setenv("LD_LIBRARY_PATH", "'$prefix'/lib/", 1);
+
+    // Execute directly
+    execv(target, new_argv);
+
+    // execv failed
+    return 1;
+}
+'>$f.c
+	mkdir -p libexec/ bin/
+	if [ "$f" == "flatpak" ]
+	then
+		gcc $f.c -o bin/$f -static
+	else
+		gcc $f.c -o libexec/$f -static
+	fi
+	rm $f.c
+	echo patchelf --set-interpreter $prefix/lib/ld-linux-x86-64.so.2 run/$f
+	patchelf --set-interpreter $prefix/lib/ld-linux-x86-64.so.2 run/$f
+	iter=$((iter+1))
+done
+
+#Create the repo
+mkdir -p var/lib/flatpak/repo/tmp var/lib/flatpak/repo/objects
+echo '[core]
+repo_version=1
+mode=bare-user-only
+min-free-space-size=500MB
+'>var/lib/flatpak/repo/config
+
+#Cleanup
+tar -cvf flatpak-portable.tar *
+mv flatpak-portable.tar ..
+cd ..
+rm -rf .tmp flatpak-1.16.1.tar.xz
 
