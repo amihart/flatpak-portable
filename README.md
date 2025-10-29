@@ -17,7 +17,7 @@ After the host produces flatpak-portable.tar, the client can install it using th
 
 ```
 sudo mkdir /opt/flatpak-portable
-sudo chmod -R 777 /opt/flatpak-portable
+sudo chmod -R 777 /opt/flatpak-portable #unsure the ideal permissions
 tar -xvf flatpak-portable.tar -C /opt/flatpak-portable
 cat 'PATH=$PATH:/opt/flatpak-portable/bin/:/opt/flatpak-portable/libexec/' >> ~/.bashrc
 ```
