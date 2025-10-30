@@ -3,7 +3,7 @@ set -xe
 
 #Pull down and compile flatpak-1.16.1
 prefix=/opt/flatpak
-out=flatpak-1.16.1-$(uname -m).tar
+out=flatpak-1.16.1-$(dpkg --print-architecture).tar
 makedeb=0
 rm -rf flatpak-1.16.1 flatpak-1.16.1.tar.xz .tmp
 wget https://github.com/flatpak/flatpak/releases/download/1.16.1/flatpak-1.16.1.tar.xz
@@ -134,7 +134,7 @@ echo 'Package: flatpak
 Version: 1.16.1
 Section: utils
 Priority: optional
-Architecture: '$(uname -m)'
+Architecture: '$(dpkg --print-architecture)'
 Depends:
 Maintainer: flatpak-portable.sh
 Description: Built with flatpak-portable.sh
