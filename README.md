@@ -32,3 +32,12 @@ nohup flatpak-portal -r &
 
 This script will package ALL of the dependencies for Flatpak used by the host machine, so the client should not need any additional dependencies in most cases (although Steam will ask for steam-devices which is needed controller support). This will even bring over glibc and the interpreter, so it does not matter if the client's glibc is outdated as the included wrappers will automatically launch flatpak with the glibc from the host machine and not the client.
 
+### Debian
+
+If you set the "makedeb" flag to 1 in the script, it will build a .DEB package. This package can be installed using the commands shown below.
+
+```
+sudo apt install ./flatpak-1.16.1-x86_64.deb
+systemctl --user daemon-reload
+systemctl --user enable flatpak-portable.service
+```
