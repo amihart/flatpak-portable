@@ -39,5 +39,5 @@ If you set the "makedeb" flag to 1 in the script, it will build a .DEB package. 
 ```
 sudo apt install ./flatpak-1.16.1-x86_64.deb
 systemctl --user daemon-reload
-systemctl --user enable flatpak-portable.service
+systemctl --user enable flatpak-portal.service
 ```
