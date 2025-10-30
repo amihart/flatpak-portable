@@ -2,7 +2,9 @@
 set -xe
 
 #Pull down and compile flatpak-1.16.1
-prefix=/opt/flatpak-portable
+prefix=/opt/flatpak
+out=flatpak-1.16.1-$(uname -m).tar
+makedeb=0
 rm -rf flatpak-1.16.1 flatpak-1.16.1.tar.xz .tmp
 wget https://github.com/flatpak/flatpak/releases/download/1.16.1/flatpak-1.16.1.tar.xz
 tar -xvf flatpak-1.16.1.tar.xz
@@ -118,8 +120,69 @@ min-free-space-size=500MB
 '>var/lib/flatpak/repo/config
 
 #Cleanup
-tar -cvf flatpak-portable.tar *
-mv flatpak-portable.tar ..
+tar -cvf $out *
+mv $out ..
 cd ..
 rm -rf .tmp flatpak-1.16.1 flatpak-1.16.1.tar.xz
 
+#Make DEB package [Optional]
+if [ "$makedeb" == "1" ]
+then
+
+mkdir -p .tmp/DEBIAN/
+echo 'Package: flatpak
+Version: 1.16.1
+Section: utils
+Priority: optional
+Architecture: '$(uname -m)'
+Depends:
+Maintainer: flatpak-portable.sh
+Description: Built with flatpak-portable.sh
+'>.tmp/DEBIAN/control
+
+echo '
+if [ -f /etc/bash.bashrc ]
+then
+	p=$(stat -c '\''%a'\'' /etc/bash.bashrc)
+else
+	p=644
+fi
+f=$(mktemp)
+cat /etc/bash.bashrc | grep -v '\''PATH=$PATH:'$prefix'/bin:'$prefix'/libexec'\'' > $f
+mv $f /etc/bash.bashrc
+chmod $p /etc/bash.bashrc
+echo '\''PATH=$PATH:'$prefix'/bin:'$prefix'/libexec'\'' >> /etc/bash.bashrc
+'>.tmp/DEBIAN/postinst
+cat .tmp/DEBIAN/postinst | grep -v echo > .tmp/DEBIAN/postrm
+echo '
+users=$(ls /home | xargs)
+count=$(echo $users | awk '\''{print NF}'\'')
+countp1=$(($count+1))
+iter=1
+while [ "$iter" != "$countp1" ]
+do
+        user=$(echo $users | cut -d " " -f $iter)
+        echo '\''[Unit]
+Description=Flatpak Portal
+
+[Service]
+Type=simple
+ExecStart='$prefix'/libexec/flatpak-portal -r
+Restart=always
+
+[Install]
+WantedBy=default.target
+'\''>/home/$user/.config/systemd/user/flatpak-portal.service
+        iter=$(($iter+1))
+done
+'>>.tmp/DEBIAN/postinst
+echo "rm -f /home/*/.config/systemd/user/flatpak-portal.service">>.tmp/DEBIAN/postrm
+
+chmod 0775 .tmp/DEBIAN/postinst .tmp/DEBIAN/postrm
+mkdir -p .tmp$prefix
+tar -xvf $out -C .tmp$prefix
+pwd
+dpkg-deb --build .tmp $(echo $out | sed 's/\.tar/\.deb/')
+rm -rf .tmp
+
+fi
